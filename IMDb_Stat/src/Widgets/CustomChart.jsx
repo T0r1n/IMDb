@@ -59,8 +59,8 @@ const lineData = result.points.map(point => ({
   
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h3 style={{ marginBottom: '5px' }}>{title}</h3>
+    <div className="custom-chart" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '40px' }}>
+      <h3 style={{ marginBottom: '5px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)', fontSize: '1.5em' }}>{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         {chartType === 'line' && (
           <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>

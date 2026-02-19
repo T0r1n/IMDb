@@ -1,170 +1,583 @@
+/* Современный дизайн с градиентами и анимациями */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+/* Навигация */
+.navbar {
+  display: flex;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 15px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nav-links {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 30px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-links a::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.nav-links a:hover::before {
+  left: 100%;
+}
+
+.nav-links a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Заголовки */
+h1 {
+  font-size: 3em;
+  color: white;
+  text-align: center;
+  margin: 40px 0;
+  animation: fadeInDown 0.8s ease;
+  font-weight: 700;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 255, 255, 0.1);
+  letter-spacing: 1px;
+}
+
+h2 {
+  font-size: 2em;
+  color: white;
+  text-align: center;
+  margin: 30px 0 20px;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.6s ease;
+  font-weight: 700;
+}
+
+/* Форма прогнозирования */
+.prediction-form {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 40px;
+  background: rgba(255, 255, 255, 1);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.8s ease;
+  backdrop-filter: blur(10px);
+}
+
+.prediction-form select,
+.prediction-form button {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 2px solid #d0d0d0;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.prediction-form select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 40px;
+}
+
+.prediction-form select option {
+  background: white;
+  color: #333;
+  padding: 12px;
+  font-size: 16px;
+}
+
+.prediction-form select option:hover {
+  background: #f0f0f0;
+}
+
+.prediction-form select option:checked {
+  background: #667eea;
+  color: white;
+}
+
+.prediction-form select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  background-color: #fafafa;
+}
+
+.prediction-form button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transform: translateY(0);
+}
+
+.prediction-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.prediction-form button:active {
+  transform: translateY(0);
+}
+
+/* Результаты прогнозирования */
+.prediction-results {
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 30px;
+  background: rgba(255, 255, 255, 1);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.8s ease;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.prediction-results h2 {
+  color: #333;
+  font-size: 1.8em;
+  margin-bottom: 20px;
+  font-weight: 700;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
+.prediction-results p {
+  font-size: 1.2em;
+  margin: 15px 0;
+  color: #222;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.prediction-results p strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+/* Сетка фильмов */
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.movie-card {
+  background: rgba(255, 255, 255, 1);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: fadeInUp 0.6s ease;
+  animation-fill-mode: both;
+  cursor: pointer;
+  position: relative;
+}
+
+.movie-card:nth-child(1) { animation-delay: 0.1s; }
+.movie-card:nth-child(2) { animation-delay: 0.2s; }
+.movie-card:nth-child(3) { animation-delay: 0.3s; }
+.movie-card:nth-child(4) { animation-delay: 0.4s; }
+.movie-card:nth-child(5) { animation-delay: 0.5s; }
+.movie-card:nth-child(6) { animation-delay: 0.6s; }
+
+.movie-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.movie-poster {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.movie-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.movie-card:hover .movie-poster img {
+  transform: scale(1.1);
+}
+
+.movie-poster::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+}
+
+.movie-info {
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.movie-title {
+  font-size: 1.3em;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: #222;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: none;
+}
+
+.movie-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.movie-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2em;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.movie-rating .star {
+  color: #ffd700;
+  font-size: 1.3em;
+}
+
+.movie-votes {
+  color: #555;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.movie-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.view-button {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Контейнеры по жанрам */
+.genre-section {
+  margin: 60px 0;
+  animation: fadeInUp 0.8s ease;
+}
+
+.genre-section h2 {
+  margin-bottom: 30px;
+}
+
+/* Загрузка */
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: white;
+  font-size: 1.5em;
+  font-weight: 600;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.loading::after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* Контейнер загрузки со спиннером */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 30px;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* Анимация появления графиков */
+.custom-chart {
+  animation: fadeInUp 0.8s ease;
+  animation-fill-mode: both;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  margin: 20px;
+  width: calc(100% - 40px);
+  max-width: 1200px;
+}
+
+.custom-chart:nth-of-type(1) { animation-delay: 0.1s; }
+.custom-chart:nth-of-type(2) { animation-delay: 0.2s; }
+.custom-chart:nth-of-type(3) { animation-delay: 0.3s; }
+.custom-chart:nth-of-type(4) { animation-delay: 0.4s; }
+.custom-chart:nth-of-type(5) { animation-delay: 0.5s; }
+.custom-chart:nth-of-type(6) { animation-delay: 0.6s; }
+.custom-chart:nth-of-type(7) { animation-delay: 0.7s; }
+.custom-chart:nth-of-type(8) { animation-delay: 0.8s; }
+
+/* Контейнер для статистики */
+.statistic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Ошибки */
+.error-message {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 1);
+  border-radius: 20px;
+  margin: 40px auto;
+  max-width: 600px;
+  color: #e74c3c;
+  animation: shake 0.5s ease;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.error-message h2 {
+  color: #e74c3c;
+  font-size: 1.8em;
+  margin-bottom: 15px;
+}
+
+.error-message p {
+  color: #333;
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+/* Анимации */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Глобальные стили для select элементов */
+select {
+  color: #333 !important;
+  background-color: white !important;
+}
+
+select option {
+  background-color: white !important;
+  color: #333 !important;
+  padding: 12px !important;
+}
+
+select option:hover {
+  background-color: #f0f0f0 !important;
+}
+
+select option:checked {
+  background-color: #667eea !important;
+  color: white !important;
+}
+
+/* Улучшение видимости текста в карточках */
+.movie-info {
+  background: white;
+}
+
+.movie-meta {
+  background: white;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 2em;
+  }
+
+  h2 {
+    font-size: 1.5em;
+  }
+
+  .nav-links {
+    gap: 15px;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+
+  .prediction-form {
+    padding: 25px;
+    margin: 20px;
+  }
+
+  .prediction-form select,
+  .prediction-form button {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+/* Старые классы для совместимости */
 .row {
-  display: flex;
-  flex-wrap: wrap; 
-  justify-content: space-between; 
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .container {
-  width: 80%;
-  margin: auto;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
-
 
 .cards {
-  margin-bottom: 20px; 
-  padding: 10px; 
-  border: 1px solid #ccc; 
-  border-radius: 5px; 
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  width: 250px; 
-  height: 100px; 
-  display: flex;
-  flex-direction: column; 
-  justify-content: space-between; 
-}
-
-.cards:hover {
-  animation: glow 1.5s infinite alternate; 
-  border-color: rgba(0, 123, 255, 0.8); 
-}
-
-@keyframes glow {
-  0% {
-    box-shadow: 0 0 5px rgba(255, 0, 0, 0.7);
-  }
-  25% {
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(0, 0, 255, 0.7);
-  }
-  75% {
-    box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
-  }
-  100% {
-    box-shadow: 0 0 25px rgba(255, 0, 255, 0.7);
-  }
-}
-
-
-
-.card-footer {
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-top: auto; 
-}
-
-.card-title {
-  font-size: 1.2rem; 
-  line-height: 1.2;
-  margin: 0; 
-}
-
-.card-block {
-  padding: 2px 0; 
-}
-
-.card-text {
-  margin: 2px 0; 
-}
-
-.cart-price {
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.btn {
-  padding: 5px 10px; 
-  margin: 0; 
-  font-size: 14px;
-  background-color: #007bff; 
-  color: white; 
-  border: 1px solid #007bff;
-}
-
-.btn:hover {
-  background-color: #00b309; 
-  border-color: #00b309; 
-}
-
-
-.navbar {
-  display: flex;
-  justify-content: center; 
-  background-color: #333; 
-  padding: 10px 0; 
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  right: 0; 
-  z-index: 1000; 
-}
-
-.nav-links {
-  list-style-type: none; 
-  padding: 0; 
-  margin: 0; 
-  display: flex; 
-}
-
-.nav-links li {
-  margin: 0 15px;
-}
-
-.nav-links a {
-  color: white; 
-  text-decoration: none; 
-  font-size: 16px; 
-}
-
-.nav-links a:hover {
-  text-decoration: underline; 
-}
-
-
-main {
-  margin-top: 60px; 
-}
-
-.form select,
-.form input,
-.form button {
-  margin-bottom: 15px;
-  padding: 10px;
+  display: none; /* Скрываем старые карточки */
 }

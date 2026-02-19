@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import CustomChart from './Widgets/CustomChart';
 import axios from 'axios';
+import './App.css';
 
 const Statistic = () => {
   const [lineData, setLineData] = useState([]);
@@ -52,12 +53,21 @@ const Statistic = () => {
   }, []);
 
   if (loading) {
-    return <p>Загрузка данных...</p>; 
+    return (
+      <div>
+        <h1>Статистика</h1>
+        <div className="loading-container">
+          <div className="loading">Загрузка статистики</div>
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-
   return (
-    <div>
+    <div className="statistic-container">
       <h1>Статистика</h1>
       <CustomChart 
         data={lineData} 
