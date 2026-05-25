@@ -1,115 +1,111 @@
-import React from 'react';
 import {
-  LineChart,
-  BarChart,
-  PieChart,
-  ScatterChart,
-  Line,
-  Bar,
-  Pie,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-  Scatter
+  LineChart, BarChart, PieChart, ScatterChart,
+  Line, Bar, Pie, Scatter,
+  XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Cell,
 } from 'recharts';
 import regression from 'regression';
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length > 0) {
-    const isPieChart = payload[0].payload && payload[0].payload.status !== undefined;
+const CHART_COLORS = ['#e50914', '#3b82f6', '#22c55e', '#f5c518', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
-    if (isPieChart) {
-      const { status, percentage } = payload[0].payload;
-      return (
-        <div style={{ backgroundColor: '#333', border: '1px solid #ccc', padding: '5px', fontSize: '12px', color: '#fff' }}>
-          <p>{`${status} : ${percentage.toFixed(2)}%`}</p>
-        </div>
-      );
-    }
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
 
-    const value = payload[0].value;
-    return (
-      <div style={{ backgroundColor: '#333', border: '1px solid #ccc', padding: '5px', fontSize: '12px', color: '#fff' }}>
-        <p>{`${label} : ${value}`}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-const CustomChart = ({ data, dataKey, xAxisKey, title, chartType, customFrontSize = 10, customInterval = 0 }) => {
-  if (!data || data.length === 0) {
-    return <p>No data available</p>;
-  }
-
-  const sortedData = data.sort((a, b) => a.numVotes - b.numVotes);
-
-const regressionData = data.map(item => [item.numVotes, item.averageRating]);
-const result = regression.linear(regressionData);
-const lineData = result.points.map(point => ({
-  numVotes: point[0],
-  averageRating: point[1]
-}));
-
-  console.log("Line Data:", lineData);
-  console.log(data)
-
-  
+  const isPieChart = payload[0].payload?.status !== undefined;
+  const value = payload[0].value;
+  const name = isPieChart ? payload[0].payload.status : label;
 
   return (
-    <div className="custom-chart" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '40px' }}>
-      <h3 style={{ marginBottom: '5px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)', fontSize: '1.5em' }}>{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
+    <div style={{
+      background: '#09090b',
+      border: '1px solid #2e2e35',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      fontSize: '13px',
+      color: '#fafafa',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+    }}>
+      <div style={{ color: '#71717a', fontSize: '11px', marginBottom: '4px' }}>{name}</div>
+      <div style={{ fontWeight: 600 }}>
+        {isPieChart ? `${payload[0].payload.percentage?.toFixed(2)}%` : value?.toLocaleString()}
+      </div>
+    </div>
+  );
+};
+
+function CustomChart({ data = [], dataKey, xAxisKey, title, chartType, customFrontSize = 10, customInterval = 0 }) {
+  if (!data.length) return null;
+
+  let regressionLineData = null;
+  if (chartType === 'scatter') {
+    const regressionData = data.map(item => [item.numVotes, item.averageRating]).filter(d => d[0] != null && d[1] != null);
+    if (regressionData.length > 1) {
+      const result = regression.linear(regressionData);
+      regressionLineData = result.points.map(point => ({ numVotes: point[0], averageRating: point[1] }));
+    }
+  }
+
+  return (
+    <div className="custom-chart">
+      <h3>{title}</h3>
+      <ResponsiveContainer width="100%" height={320}>
         {chartType === 'line' && (
-          <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={xAxisKey} />
-            <YAxis />
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 60 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2e2e35" />
+            <XAxis dataKey={xAxisKey} tick={{ fill: '#71717a', fontSize: 12 }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
+            <YAxis tick={{ fill: '#71717a', fontSize: 12 }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
             <Tooltip content={<CustomTooltip />} />
-            <Line type="monotone" dataKey={dataKey} stroke="#8884d8" />
+            <Line type="monotone" dataKey={dataKey} stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: CHART_COLORS[0] }} />
           </LineChart>
         )}
+
         {chartType === 'bar' && (
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={xAxisKey} angle={-45} textAnchor="end" fontSize={customFrontSize} interval={customInterval}/>
-            <YAxis />
+          <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 60 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2e2e35" />
+            <XAxis dataKey={xAxisKey} angle={-45} textAnchor="end" fontSize={customFrontSize} interval={customInterval} tick={{ fill: '#71717a' }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
+            <YAxis tick={{ fill: '#71717a', fontSize: 12 }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey={dataKey} fill="#8884d8" />
+            <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+              {data.map((_, index) => (
+                <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} fillOpacity={0.85} />
+              ))}
+            </Bar>
           </BarChart>
         )}
+
         {chartType === 'pie' && (
           <PieChart>
-          <Pie 
-            data={data} 
-            dataKey="percentage" 
-            nameKey="status"
-            cx="50%" 
-            cy="50%" 
-            outerRadius={50} 
-            fill="#8884d8" 
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} 
-            stroke="#fff"
-            strokeWidth={2} 
-            activeShape={null}
-          />
-          <Tooltip content={<CustomTooltip />} />
-        </PieChart>
+            <Pie
+              data={data}
+              dataKey="percentage"
+              nameKey="status"
+              cx="50%"
+              cy="50%"
+              outerRadius={100}
+              stroke="#18181b"
+              strokeWidth={3}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+            >
+              {data.map((_, index) => (
+                <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
         )}
-          {chartType === 'scatter' && ( 
-          <ScatterChart>
-            <CartesianGrid />
-            <XAxis dataKey="numVotes" name="Number of Votes" />
-            <YAxis dataKey="averageRating" name="Average Rating" domain={[0, 10]} />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter name="Correlation" data={sortedData} fill="#8884d8" />
-            <Line type="monotone" data={lineData} dataKey="averageRating" stroke="#ff7300" strokeWidth={5} />
+
+        {chartType === 'scatter' && (
+          <ScatterChart margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
+            <CartesianGrid stroke="#2e2e35" />
+            <XAxis dataKey="numVotes" name="Votes" tick={{ fill: '#71717a', fontSize: 12 }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
+            <YAxis dataKey="averageRating" name="Rating" domain={[0, 10]} tick={{ fill: '#71717a', fontSize: 12 }} tickLine={{ stroke: '#2e2e35' }} axisLine={{ stroke: '#2e2e35' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#2e2e35' }} />
+            <Scatter name="Correlation" data={data} fill={CHART_COLORS[0]} fillOpacity={0.6} r={4} />
+            {regressionLineData && (
+              <Line type="monotone" data={regressionLineData} dataKey="averageRating" stroke={CHART_COLORS[3]} strokeWidth={2} dot={false} />
+            )}
           </ScatterChart>
         )}
       </ResponsiveContainer>
-      
     </div>
   );
 };

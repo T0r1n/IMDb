@@ -1,248 +1,237 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios'
-import './App.css'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { Star, ExternalLink, Film, AlertCircle } from 'lucide-react';
+import './App.css';
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.04 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+};
 
 const GenresTopPage = () => {
   const [array, setArray] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
- 
+  const [posterUrls, setPosterUrls] = useState({});
+  const loadedIds = useRef(new Set());
   const excludedGenres = ['Adult'];
 
-  const [posterUrls, setPosterUrls] = useState({});
-
-  // Простая хеш-функция для генерации цвета
-  const hashCode = (str) => {
-    if (!str) return 0;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return hash;
-  };
-
-  // Функция для получения URL постера
-  const getPosterUrl = (movieId) => {
-    if (!movieId) {
-      const colors = ['667eea', '764ba2', 'f093fb'];
-      return `https://via.placeholder.com/300x400/${colors[0]}/ffffff?text=🎬`;
-    }
-
-    // Если уже загружен, используем из кэша
-    if (posterUrls[movieId]) {
-      return posterUrls[movieId];
-    }
-
-    // Пробуем IMDb CDN URL
-    const imdbUrl = `https://m.media-amazon.com/images/M/MV5B${movieId}._V1_SX300.jpg`;
-    
-    // Placeholder с градиентом на основе ID
-    const colors = ['667eea', '764ba2', 'f093fb', '4facfe', '00f2fe', '43e97b', 'fa709a'];
-    const colorIndex = Math.abs(hashCode(movieId)) % colors.length;
-    const placeholderUrl = `https://via.placeholder.com/300x400/${colors[colorIndex]}/ffffff?text=🎬`;
-
-    return imdbUrl;
-  };
-
-  // Загружаем постеры через бэкенд при получении данных
   useEffect(() => {
     const loadPosters = async () => {
       if (!array || Object.keys(array).length === 0) return;
-
-      const newPosterUrls = {};
       const allMovies = Object.values(array).flat();
-      
+      const newPosterUrls = {};
       await Promise.all(
         allMovies.map(async (movie) => {
-          if (movie.id && !posterUrls[movie.id]) {
+          if (movie.id && !loadedIds.current.has(movie.id)) {
+            loadedIds.current.add(movie.id);
             try {
-              const response = await axios.get(`http://127.0.0.1:5000/get_poster/${movie.id}`);
-              console.log(`Постер для ${movie.id}:`, response.data);
-              
+              const response = await axios.get(`/get_poster/${movie.id}`);
               let posterUrl = response.data.poster_url;
-              
-              if (response.data.fallback_urls && response.data.fallback_urls.length > 0) {
+              if (response.data.fallback_urls?.length > 0) {
                 if (!posterUrl || posterUrl.includes('placeholder') || posterUrl.includes('N/A')) {
                   posterUrl = response.data.fallback_urls[0];
                 }
               }
-              
               if (!posterUrl || posterUrl.includes('N/A')) {
                 posterUrl = response.data.placeholder_url;
               }
-              
               newPosterUrls[movie.id] = posterUrl;
-            } catch (error) {
-              console.error(`Ошибка при загрузке постера для ${movie.id}:`, error);
-              const colors = ['667eea', '764ba2', 'f093fb', '4facfe', '00f2fe'];
-              const colorIndex = Math.abs(hashCode(movie.id)) % colors.length;
-              newPosterUrls[movie.id] = `https://via.placeholder.com/300x400/${colors[colorIndex]}/ffffff?text=🎬`;
+            } catch {
+              newPosterUrls[movie.id] = null;
             }
           }
         })
       );
-      
       if (Object.keys(newPosterUrls).length > 0) {
         setPosterUrls(prev => ({ ...prev, ...newPosterUrls }));
       }
     };
-
     loadPosters();
   }, [array]);
 
-  const top_rated_by_genre = async () => {
-    try {
-      const response = await axios.get("http://127.0.0.1:5000/top_rated_by_genre");
-      console.log("Ответ от сервера:", response.data);
-      
-      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-        setArray(response.data);
-      } else {
-        console.error("Неверный формат данных:", response.data);
-        setError("Неверный формат данных от сервера");
-        setArray({});
-      }
-    } catch (error) {
-      console.error("Ошибка при загрузке данных:", error);
-      setError(error.message || "Ошибка при загрузке данных");
-      setArray({});
-    } finally {
-      setLoading(false); 
-    }
-  };
-
   useEffect(() => {
-    top_rated_by_genre();
-  },[]);
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('/top_rated_by_genre');
+        if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+          setArray(response.data);
+        } else {
+          setError('Invalid data format from server');
+          setArray({});
+        }
+      } catch (err) {
+        setError(err.message || 'Error loading data');
+        setArray({});
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const openIMDb = (movieId, genres) => {
+  const openIMDb = (movieId, movieGenres) => {
     const existingGenres = JSON.parse(localStorage.getItem('userGenres')) || [];
-
-    const updatedGenres = Array.from(new Set([...existingGenres, ...genres]));
-
-    if (updatedGenres.length > 5) {
-      updatedGenres.shift(); 
-    }
-
+    const updatedGenres = Array.from(new Set([...existingGenres, ...movieGenres]));
+    if (updatedGenres.length > 5) updatedGenres.shift();
     localStorage.setItem('userGenres', JSON.stringify(updatedGenres));
-
-    const url = `https://www.imdb.com/title/${movieId}/`; 
-    window.open(url, "_blank"); 
+    window.open(`https://www.imdb.com/title/${movieId}/`, '_blank');
   };
+
+  const handleImageError = useCallback((e, movieId) => {
+    const img = e.target;
+    if (img.dataset.retried === 'true') {
+      img.style.display = 'none';
+      return;
+    }
+    img.dataset.retried = 'true';
+    axios.get(`/get_poster/${movieId}`)
+      .then(response => {
+        const newUrl = response.data.poster_url || response.data.placeholder_url;
+        if (newUrl && !newUrl.includes('N/A')) {
+          img.src = newUrl;
+        } else {
+          img.style.display = 'none';
+        }
+      })
+      .catch(() => {
+        img.style.display = 'none';
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="page-header"><h1>Top Films by Genre</h1></div>
+        <div className="loading-container">
+          <div className="loading-spinner" />
+          <div className="loading-text">Loading top films...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="page-header"><h1>Top Films by Genre</h1></div>
+        <div className="error-message">
+          <AlertCircle size={32} style={{ color: 'var(--error)', margin: '0 auto 16px' }} />
+          <h2>Loading error</h2>
+          <p>{error}</p>
+          <p>Check that the server is running and data.csv exists.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!array || Object.keys(array).length === 0) {
+    return (
+      <div className="page-container">
+        <div className="page-header"><h1>Top Films by Genre</h1></div>
+        <div className="empty-state">
+          <Film size={48} />
+          <p>No data found. Check that the server is running.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>🏆 Топовые фильмы по жанрам</h1>
-      {loading ? (
-        <div className="loading">Загрузка фильмов</div>
-      ) : error ? (
-        <div className="error-message">
-          <h2>Ошибка загрузки данных</h2>
-          <p>{error}</p>
-          <p>Проверьте консоль браузера и логи сервера для подробностей.</p>
-        </div>
-      ) : !array || Object.keys(array).length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
-          color: 'white',
-          textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: '20px',
-          maxWidth: '600px',
-          margin: '0 auto'
-        }}>
-          <p style={{ fontSize: '1.2em', fontWeight: '500', margin: 0 }}>
-            Данные не найдены. Проверьте, что сервер запущен и файл data.csv существует.
-          </p>
-        </div>
-      ) : (
-        Object.keys(array).map((genre, genreIndex) => {
-          if (excludedGenres.includes(genre)) {
-            return null; 
-          }
-          if (!array[genre] || !Array.isArray(array[genre]) || array[genre].length === 0) {
-            return null;
-          }
-          return (
-            <div className="genre-section" key={genre} style={{ animationDelay: `${genreIndex * 0.1}s` }}>
-              <h2>🎬 Top {genre} Films</h2>
-              <div className="movies-grid">
-                {array[genre].map((item, index) => {
-                  if (!item || !item.id || !item.title) {
-                    console.warn("Пропущен невалидный элемент:", item);
-                    return null;
-                  }
-                  return (
-                    <div 
-                      className="movie-card" 
-                      key={item.id || index}
-                      style={{ animationDelay: `${(genreIndex * 0.1) + (index * 0.05)}s` }}
-                    >
-                      <div className="movie-poster">
-                        <img 
-                          src={posterUrls[item.id] || getPosterUrl(item.id)} 
+    <div className="page-container">
+      <motion.div
+        className="page-header"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h1>Top Films by Genre</h1>
+        <p>Highest-rated films across all genres</p>
+      </motion.div>
+
+      {Object.keys(array).map((genre, genreIndex) => {
+        if (excludedGenres.includes(genre)) return null;
+        if (!array[genre]?.length) return null;
+
+        return (
+          <motion.div
+            className="genre-section"
+            key={genre}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: genreIndex * 0.05 }}
+          >
+            <div className="genre-section-header">
+              <h2>Top {genre}</h2>
+              <div className="genre-section-header-line" />
+            </div>
+            <motion.div className="movies-grid" variants={stagger} initial="hidden" animate="show">
+              {array[genre].map((item) => {
+                if (!item?.id || !item?.title) return null;
+                return (
+                  <motion.div
+                    className="movie-card"
+                    key={item.id}
+                    variants={fadeUp}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="movie-poster">
+                      {posterUrls[item.id] ? (
+                        <img
+                          src={posterUrls[item.id]}
                           alt={item.title}
                           loading="lazy"
-                          onError={(e) => {
-                            const img = e.target;
-                            const currentSrc = img.src;
-                            
-                            if (currentSrc.includes('placeholder') || img.dataset.retried === 'true') {
-                              const colors = ['667eea', '764ba2', 'f093fb', '4facfe', '00f2fe'];
-                              const colorIndex = Math.abs(hashCode(item.id || '')) % colors.length;
-                              img.style.display = 'none';
-                              img.parentElement.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: white; font-size: 18px; text-align: center; padding: 20px; background: linear-gradient(135deg, #${colors[colorIndex]} 0%, #764ba2 100%);">${item.title}</div>`;
-                              return;
-                            }
-                            
-                            img.dataset.retried = 'true';
-                            axios.get(`http://127.0.0.1:5000/get_poster/${item.id}`)
-                              .then(response => {
-                                const newUrl = response.data.poster_url || response.data.placeholder_url;
-                                if (newUrl && !newUrl.includes('N/A')) {
-                                  img.src = newUrl;
-                                } else {
-                                  throw new Error('No valid poster URL');
-                                }
-                              })
-                              .catch(() => {
-                                const colors = ['667eea', '764ba2', 'f093fb', '4facfe', '00f2fe'];
-                                const colorIndex = Math.abs(hashCode(item.id || '')) % colors.length;
-                                img.src = `https://via.placeholder.com/300x400/${colors[colorIndex]}/ffffff?text=🎬`;
-                              });
-                          }}
+                          onError={(e) => handleImageError(e, item.id)}
                         />
-                      </div>
-                      <div className="movie-info">
-                        <h3 className="movie-title">{item.title}</h3>
-                        <div className="movie-meta">
-                          <div className="movie-rating">
-                            <span className="star">⭐</span>
-                            <span>{item.averageRating?.toFixed(1) || 'N/A'}</span>
-                          </div>
-                          <div className="movie-votes">
-                            {item.numVotes || 0} голосов
-                          </div>
+                      ) : (
+                        <div className="movie-poster-placeholder">
+                          <Film size={32} />
+                          <span className="movie-poster-placeholder-title">{item.title}</span>
                         </div>
-                        <div className="movie-actions">
-                          <button 
-                            className="view-button" 
-                            onClick={() => openIMDb(item.id, item.genres || [])}
-                          >
-                            <span>👁️</span>
-                            <span>Открыть в IMDb</span>
-                          </button>
-                        </div>
+                      )}
+                      <div className="movie-poster-overlay" />
+                      <div className="movie-rating-badge">
+                        <Star />
+                        {item.averageRating?.toFixed(1) || 'N/A'}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })
-      )}
+                    <div className="movie-info">
+                      <h3 className="movie-title">{item.title}</h3>
+                      <div className="movie-meta">
+                        <div className="movie-rating">
+                          <Star />
+                          {item.averageRating?.toFixed(1) || 'N/A'}
+                        </div>
+                        <div className="movie-votes">
+                          {item.numVotes?.toLocaleString() || 0} votes
+                        </div>
+                      </div>
+                      {item.genres?.length > 0 && (
+                        <div className="movie-genres">
+                          {item.genres.slice(0, 3).map((g) => (
+                            <span className="movie-genre-tag" key={g}>{g}</span>
+                          ))}
+                        </div>
+                      )}
+                      <button className="view-button" onClick={() => openIMDb(item.id, item.genres || [])}>
+                        <ExternalLink size={14} />
+                        Open in IMDb
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };

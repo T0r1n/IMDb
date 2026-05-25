@@ -11,7 +11,18 @@ try:
     import requests
 except ImportError:
     requests = None
-    print("⚠️ Библиотека requests не установлена. Установите: pip install requests")
+
+try:
+    from imdb import Cinemagoer
+    cinemagoer_available = True
+except ImportError:
+    cinemagoer_available = False
+
+try:
+    from bs4 import BeautifulSoup
+    bs4_available = True
+except ImportError:
+    bs4_available = False
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -143,10 +154,12 @@ def index():
 
 @app.route('/<path:path>', methods=['GET'])
 def serve_frontend(path):
-    """Раздача собранного Vite-фронта из dist/ (JS, CSS, assets)."""
     if not os.path.isdir(DIST_DIR):
         return jsonify(error='Frontend not built. Run: cd IMDb_Stat && npm run build'), 404
-    return send_from_directory(DIST_DIR, path)
+    file_path = os.path.join(DIST_DIR, path)
+    if os.path.isfile(file_path):
+        return send_from_directory(DIST_DIR, path)
+    return send_from_directory(DIST_DIR, 'index.html')
 
 
 @app.route('/data', methods=['GET'])
@@ -191,7 +204,7 @@ def get_top_rated_by_genre():
 
     sorted_data = genres_expanded.sort_values(by='averageRating', ascending=False)
 
-    top_rated_by_genre = sorted_data.groupby('genres').head(9)
+    top_rated_by_genre = sorted_data.groupby('genres').head(10)
 
     result = {}
     for genre in top_rated_by_genre['genres'].unique():
@@ -420,7 +433,7 @@ def get_poster(movie_id):
     """Получение URL постера фильма через OMDb API."""
     # OMDb API ключ (можно получить бесплатно на http://www.omdbapi.com/apikey.aspx)
     # Используем переменную окружения или ключ по умолчанию
-    omdb_api_key = os.environ.get('OMDB_API_KEY', '931b157c')
+    omdb_api_key = os.environ.get('OMDB_API_KEY', '82222fa8')
     
     # Используем OMDb API для получения постеров
     if omdb_api_key and requests:
@@ -560,6 +573,165 @@ def get_movies_by_local_genres():
     print("=" * 50 + "\n")
 
     return jsonify(movies_result)
+
+
+@app.route('/search_series', methods=['GET'])
+def search_series():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'error': 'Query parameter "q" is required'}), 400
+
+    omdb_api_key = os.environ.get('OMDB_API_KEY', '82222fa8')
+
+    if not omdb_api_key or not requests:
+        return jsonify({'error': 'OMDb API not configured'}), 503
+
+    try:
+        url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&type=series&s={query}"
+        response = requests.get(url, timeout=10)
+
+        if response.status_code != 200:
+            return jsonify({'error': 'OMDb API request failed'}), 502
+
+        data = response.json()
+
+        if data.get('Response') != 'True':
+            return jsonify({'results': [], 'total': 0})
+
+        results = []
+        for item in data.get('Search', []):
+            results.append({
+                'id': item.get('imdbID', ''),
+                'title': item.get('Title', ''),
+                'year': item.get('Year', ''),
+                'poster': item.get('Poster', '') if item.get('Poster') != 'N/A' else None,
+            })
+
+        return jsonify({
+            'results': results,
+            'total': int(data.get('totalResults', len(results)))
+        })
+    except Exception as e:
+        print(f"Error searching series: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/series_episodes/<series_id>', methods=['GET'])
+def series_episodes(series_id):
+    omdb_api_key = os.environ.get('OMDB_API_KEY', '82222fa8')
+
+    if not omdb_api_key or not requests:
+        return jsonify({'error': 'OMDb API not configured'}), 503
+
+    try:
+        info_url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&i={series_id}"
+        info_response = requests.get(info_url, timeout=10)
+
+        if info_response.status_code != 200:
+            return jsonify({'error': 'OMDb API request failed'}), 502
+
+        info_data = info_response.json()
+
+        if info_data.get('Response') != 'True':
+            return jsonify({'error': info_data.get('Error', 'Series not found')}), 404
+
+        total_seasons = int(info_data.get('totalSeasons', 1))
+        series_info = {
+            'id': series_id,
+            'title': info_data.get('Title', ''),
+            'year': info_data.get('Year', ''),
+            'rating': info_data.get('imdbRating', 'N/A'),
+            'genres': info_data.get('Genre', ''),
+            'totalSeasons': total_seasons,
+            'poster': info_data.get('Poster', '') if info_data.get('Poster') != 'N/A' else None,
+        }
+
+        seasons = {}
+        for season_num in range(1, total_seasons + 1):
+            season_url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&i={series_id}&Season={season_num}"
+
+            season_data = None
+            for attempt in range(3):
+                try:
+                    time.sleep(0.4)
+                    season_response = requests.get(season_url, timeout=10)
+
+                    if season_response.status_code == 200:
+                        data = season_response.json()
+                        if data.get('Response') == 'True':
+                            season_data = data
+                            break
+                        elif data.get('Error') and 'limit' in data.get('Error', '').lower():
+                            time.sleep(1.5)
+                            continue
+                    else:
+                        time.sleep(1.5)
+                except requests.exceptions.RequestException:
+                    time.sleep(1)
+
+            if season_data:
+                episodes = []
+                for ep in season_data.get('Episodes', []):
+                    ep_num = int(ep.get('Episode', 0))
+                    if ep_num == 0:
+                        continue
+                    rating = ep.get('imdbRating')
+                    episodes.append({
+                        'episode': ep_num,
+                        'imdbID': ep.get('imdbID', ''),
+                        'title': ep.get('Title', ''),
+                        'rating': float(rating) if rating and rating != 'N/A' else None,
+                        'released': ep.get('Released', ''),
+                    })
+                episodes.sort(key=lambda x: x['episode'])
+                seasons[str(season_num)] = episodes
+            else:
+                print(f"Warning: Failed to load season {season_num} for {series_id}")
+
+        max_episodes = max(
+            (len(eps) for eps in seasons.values()),
+            default=0
+        )
+
+        missing_count = sum(
+            1 for eps in seasons.values()
+            for ep in eps if ep['rating'] is None
+        )
+
+        if missing_count > 0:
+            print(f"Found {missing_count} episodes with missing ratings, fetching individually...")
+            filled = 0
+            for season_key, eps_list in seasons.items():
+                for ep in eps_list:
+                    if ep['rating'] is not None:
+                        continue
+                    ep_imdb_id = ep.get('imdbID', '')
+                    if not ep_imdb_id:
+                        continue
+                    try:
+                        time.sleep(0.3)
+                        ep_url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&i={ep_imdb_id}"
+                        ep_response = requests.get(ep_url, timeout=10)
+                        if ep_response.status_code == 200:
+                            ep_data = ep_response.json()
+                            if ep_data.get('Response') == 'True':
+                                ep_rating = ep_data.get('imdbRating')
+                                if ep_rating and ep_rating != 'N/A':
+                                    ep['rating'] = float(ep_rating)
+                                    filled += 1
+                                    print(f"  S{season_key}E{ep['episode']}: {ep['rating']}")
+                    except Exception:
+                        pass
+            print(f"Filled {filled}/{missing_count} missing ratings via individual fetch")
+
+        return jsonify({
+            'series': series_info,
+            'seasons': seasons,
+            'maxEpisodes': max_episodes,
+        })
+    except Exception as e:
+        print(f"Error fetching series episodes: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':

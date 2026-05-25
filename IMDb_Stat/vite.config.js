@@ -1,13 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      // В dev все запросы к API пересылаем на Flask
       '/data': 'http://127.0.0.1:5000',
       '/filtered_data': 'http://127.0.0.1:5000',
       '/top_rated_by_genre': 'http://127.0.0.1:5000',
@@ -22,6 +20,9 @@ export default defineConfig({
       '/data_missing': 'http://127.0.0.1:5000',
       '/predict_rating': 'http://127.0.0.1:5000',
       '/get_movies_by_local_genres': 'http://127.0.0.1:5000',
+      '/get_poster': 'http://127.0.0.1:5000',
+      '/search_series': 'http://127.0.0.1:5000',
+      '/series_episodes': 'http://127.0.0.1:5000',
     },
   },
 })
